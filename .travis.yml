@@ -1,0 +1,11 @@
+language: generic
+
+os:
+    - linux
+    - osx
+
+before_install:
+    - cd tests
+
+script: 
+    - ./test.sh
