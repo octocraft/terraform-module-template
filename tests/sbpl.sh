@@ -86,7 +86,7 @@ function sbpl_get () {
     function check_dependency () {
         if ! has_command $1; then
             printf "Dependency '$1' not found\n" 1>&2
-            exit 2
+            exit 127
         fi
     }
 
@@ -111,7 +111,7 @@ function sbpl_get () {
                     $cmd $@
                 }
 
-                case "${src}" in
+                case "$src" in
                     *.tar.bz2|*.tar.gz|*.tar.xz|*.tbz2|*.tgz|*.txz|*.tar)
                                 run tar xvf "$src"     ;;
                     *.lzma)     run unlzma "$src"      ;;
@@ -136,27 +136,38 @@ function sbpl_get () {
 
         if [ "$result" -eq 127 ]; then # command not found | unknown archive method
 
-            ul="https://github.com/mholt/archiver/releases/download/v2.0/archiver_${_sbpl_os}_${_sbpl_arch}"
-            pkg_dir="$sbpl_dir_pkgs/$_sbpl_os/$_sbpl_arch/archiver"
-            pkg_bin="$pkg_dir/archiver"
-            bin_dir="$sbpl_dir_bins/$_sbpl_os/$_sbpl_arch"
+            bin_name=''
 
-            mkdir -p "$pkg_dir"
-            mkdir -p "$bin_dir"
+            case "$src" in
+                *.zip|*.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.lz4|*.tlz4|*.tar.sz|*.tsz|*.rar)
+                        bin_name='archiver'
+                        bin_ver='2.0.1'
+                        # currently there is a bug in archiver, that symlinks are not created correctly.
+                        # bin_url="https://github.com/mholt/$bin_name/releases/download/v$bin_ver/${bin_name}_${bin_os}_${_sbpl_arch}"
+                        bin_url='https://github.com/peterpostmann/${name}/releases/download/v${version}/${name}_${sbpl_os}_${sbpl_arch}'
+                        bin_bin='./'
+                        ;;
+                *)      ;;
+            esac
 
-            set +e
-            (
+            if [ ! -z "$bin_name" ]; then
+                set +e
+                (
+                    set -e
+
+                    PATH="$PWD/$sbpl_dir_bins/current:$PATH"
+                    sbpl_os="$_sbpl_os"
+                    sbpl_arch="$_sbpl_arch"
+
+                    if ! has_command archiver; then
+                        get_pkg 'file' "$bin_name" "$bin_ver" "$bin_url" "$bin_bin"
+                    fi
+
+                    archiver open "$src" "$dst"
+                )
+                [ "$?" -eq 0 ] && result=0
                 set -e
-
-                if [ ! -f "$pkg_bin" ]; then
-                    fetch "$url" "$pkg_bin"
-                    chmod +x "$pkg_bin"
-                    ln -fs "$PWD/$pkg_bin" "$bin_dir/archiver"
-                fi
-                ./$pkg_bin open "$src" "$dst"
-            )
-            result="$?"
-            set -e
+            fi
         fi
 
         if [ "$result" -ne 0 ]; then
@@ -174,6 +185,8 @@ function sbpl_get () {
         printf "git     'name' 'branch/tag' 'url' 'bin_dir'\n" 1>&2
     }
 
+    function get_pkg () {
+
     # Check number of arguments
     if [ "$#" -lt 4 ]; then sbpl_usage; return 2; fi
 
@@ -186,9 +199,6 @@ function sbpl_get () {
         printf "Neither 'curl' nor 'wget' found\n" 1>&2
         exit 2
     fi
-
-    # Check number of arguments
-    if [ "$#" -lt 4 ]; then sbpl_usage; return 2; fi
 
     # Check target
     target="$1"
@@ -342,6 +352,8 @@ function sbpl_get () {
     fi
 
     return $result
+
+    }; get_pkg $@; return $?
 }
 
 function get_packages () {
@@ -380,15 +392,29 @@ function get_packages () {
 }
 
 function sbpl_test () {
- 
-    if ! (command -v bats &> /dev/null); then
-        sbpl_get 'archive' 'bats' '0.4.0' 'https://github.com/sstephenson/bats/archive/v${version}.zip' 'bin'
-        bats_bin=$(pwd)/vendor/current/bats/bin/bats
-        bats () { $bats_bin $@; }
-    fi
 
     [ -z ${1+x} ] && testdir="." || testdir="$1"
+    testdir="$([ "$testdir" != "${testdir#/}" ] && echo "$testdir" || echo "$PWD/$testdir")"
+
+    PATH="$PWD/$sbpl_dir_bins/current:$testdir:$PATH"
+
+    if [ -z ${2+x} ]; then
+        if ! command -v bats &> /dev/null; then
+            sbpl_get 'archive' 'bats' '0.4.0' 'https://github.com/sstephenson/bats/archive/v${version}.zip' 'bin'
+        fi
+        cmd="bats --tap ."
+    else
+        shift
+        cmd="$@"
+    fi
+
     pushd "$testdir" > /dev/null
+
+    bin=${cmd%% *}
+    if ! command -v $bin &> /dev/null; then
+        printf "unknown command '$bin'\n"
+        exit 2
+    fi
 
     # Loop through test folders
     for subdir in test*/; do
@@ -398,7 +424,7 @@ function sbpl_test () {
         printf "[${subdir%/}]\n"
 
         pushd "./$subdir" > /dev/null
-            bats --tap .
+            $cmd
         popd > /dev/null
 
         printf "\n"
@@ -418,7 +444,7 @@ function usage () {
     printf "help    - print usage information\n"
     printf "update  - download packages\n"
     printf "upgrade - upgrade to latest sbpl version\n"
-    printf "clean   - clear vendor dir\n"
+    printf "clean   - clear package dir\n"
     printf "version - print sbpl version information\n"
     printf "envvars - print vars used by sbpl. Pass a var name to filter the list\n"
     printf "get     - download package\n"

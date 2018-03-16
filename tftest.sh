@@ -1,20 +1,11 @@
 #!/bin/bash
 set -eu
 
-# Get Packages
-./sbpl.sh
-
-# Include Packages
-export PATH="$PWD/vendor/bin/current:$PATH"
-
-# Get test dirs
-shopt -s nullglob
-tests=(test*/)
-total=${#tests[@]}
-shopt -u nullglob
-
-# TAP
-printf "1..$total\n" 
+# Check if Terraform is present
+if ! [ -x "$(command -v terraform 2>/dev/null)" ]; then
+    echo 'error: terraform not found in $PATH'
+    exit 2
+fi
 
 # Test with wine (if present)
 ((command -v 'wine' &> /dev/null) && ([ -z "${TFTEST_WINE+x}" ] || $TFTEST_WINE)) && test_wine=true || test_wine=false
@@ -47,47 +38,29 @@ function run_test () {
     return $result
 }
 
-# Loop through test folders
-num=0
-for subdir in test*/; do
-    if [ ! -d "$subdir" ]; then continue; fi
+# run test
+set +e
+    output=$(run_test 2>&1) 
+    result=$?
+set -e
 
-    name=${subdir%/}
-    num=$((num + 1))
+if [ "$result" -eq 0 ]; then
+    
+    outputs=$(echo "$output" | grep -A 2 "^Outputs:$" | grep -e '^[^\s=]* = ')
 
-    pushd "$subdir" > /dev/null
-
-        set +e
-        output=$(
-            run_test 2>&1
-        ) 
+    if [ ! -z ${1+x} ] && [ -f "$1" ]; then
+        [ "$outputs" = "$(< "outputs.diff")" ]
         result=$?
-        set -e
 
         if [ "$result" -eq 0 ]; then
-            # Test outputs
-            if [ -f "outputs.diff" ]; then
-                outputs=$(echo "$output" | grep -A 2 "^Outputs:$" | grep -e '^[^\s=]* = ')
-                [ "$outputs" = "$(< "outputs.diff")" ]
-                result=$?
-
-                if [ "$result" -eq 0 ]; then
-                    output=$(printf "%s\n%s" "$output" "outputs do not match with ouputs.diff")
-                fi                
-            fi
+            output=$(printf "%s\n%s" "$output" "outputs do not match with ouputs.diff")
         fi
-        
-        if [ "$result" -eq 0 ]; then
-            status="ok"
-            output=""
-        else
-            status="not ok"
-            output=$(printf "\n%s" "$output")
-        fi
+    else
+        echo "$outputs"
+    fi
+              
+else
+    echo "$output"  
+fi
 
-        printf "ok %s %s\n" $num $name $output
-
-    popd > /dev/null
-
-done
-
+exit $result

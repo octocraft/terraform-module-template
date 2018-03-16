@@ -1,8 +1,9 @@
 #!/usr/bin/env bats
 
-@test "TFTEST_WINE false / no wine" {
+@test "TFTEST_WINE unset / no wine" {
     
-    run ./tftest.sh
+    export PATH="/bin"    
+    run ./sbpl.sh . tftest.sh
     [ "$status" -eq 0 ]
-    [ "$output" = "1..0" ]
+    [ -z "$output" ]
 }
