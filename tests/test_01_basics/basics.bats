@@ -112,7 +112,7 @@ export -f terraform
     echo "status: $status"
     echo "output: $output"
     [ "$status" -eq 0 ]
-    [ "$output" = "success" ]
+    [ "$output" = "foo = bar" ]
 
     rm -f "outputs.diff"
 }
@@ -148,8 +148,8 @@ export -f terraform
     echo "output: $output"
     [ "$status" -eq 0 ]
     [ "${#lines[@]}" -eq 2 ]
-    [ "${lines[0]}" = "success" ]
-    [ "${lines[1]}" = "success" ]
+    [ "${lines[0]}" = "foo = bar" ]
+    [ "${lines[1]}" = "foo = bar" ]
 
     rm -f "outputs.diff"
 }
@@ -182,7 +182,7 @@ export -f terraform
     echo "status: $status"
     echo "output: $output"
     [ "$status" -eq 0 ]
-    [ "$output" = "success" ]
+    [ "$output" = "foo = bar" ]
 }
 
 @test "targets.diff / wine.diff" {
@@ -200,7 +200,7 @@ export -f terraform
     echo "output: $output"
     [ "$status" -eq 0 ]
     [ "${#lines[@]}" -eq 2 ]
-    [ "${lines[0]}" = "success" ]
-    [ "${lines[1]}" = "success" ]
+    [ "${lines[0]}" = "foo = bar" ]
+    [ "${lines[1]}" = "foo = lol" ]
 }
 

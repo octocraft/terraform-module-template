@@ -62,6 +62,8 @@ function run_test () {
             difffile=""
         fi
 
+        output="$outputs"
+
         if [ ! -z "$difffile" ]; then
 
             set +e
@@ -69,18 +71,13 @@ function run_test () {
             result=$?
             set -e
 
-            if [ "$result" -eq 0 ]; then
-                printf "success\n"
-            else
-                printf "%s\n%s\n" "output does not match with '$difffile':" "$outputs"
+            if [ "$result" -ne 0 ]; then
+                output=$(printf "%s\n%s" "output does not match with '$difffile':" "$outputs")
             fi
-        else
-            echo "$outputs"
         fi
-
-    else
-        echo "$output"
     fi
+
+    printf "%s\n" "$output"
 
     return $result
 }
