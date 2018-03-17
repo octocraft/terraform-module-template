@@ -53,7 +53,7 @@ function run_test () {
 
         set +e
         numlines=$(echo "$output" | grep -c '^')
-        outputs=$(echo "$output" | grep -A $numlines "^Outputs:$" | grep -e '^[^\s=]* = ')
+        outputs=$(echo "$output" | grep -A $numlines "^Outputs:$" | grep -e '^[^ =]* = ')
         set -e
 
         if [ ! -z "${1+x}" ] && [ -f "$1" ]; then
