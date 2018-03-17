@@ -13,18 +13,17 @@ fi
 # outputs.diff
 [ -f "outputs.diff" ] && ([ -z "${TFTEST_DIFFOUTPUT+x}" ] || $TFTEST_DIFFOUTPUT) && diff_output=true || diff_output=false
 
+function clean () {
+    rm -rf .terraform
+    rm -f terraform.tfstate
+    rm -f terraform.tfstate.backup
+}
+
 # Test function
 function exec_tf () {
 
-    function clean () {
-        rm -rf .terraform
-        rm -f terraform.tfstate
-        rm -f terraform.tfstate.backup
-    }
-
     set +e
     (
-        clean
         set -e
         terraform init -input=false -no-color > /dev/null
         terraform get > /dev/null
@@ -32,7 +31,6 @@ function exec_tf () {
         terraform apply -input=false -auto-approve -no-color
         res=$?
         terraform destroy -force -no-color > /dev/null
-        clean
         if [ "$res" -eq 0 ]; then return $?; else return $res; fi 
     )
     result=$?
@@ -100,6 +98,7 @@ else
 fi
 
 # Run Test
+clean
 run_test $diff_unix
 result=$?
 if [ "$result" -ne 0 ]; then exit $result; fi
@@ -116,5 +115,5 @@ if $test_wine; then
     )
     result=$?
 fi
-
+clean
 exit $result
