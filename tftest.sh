@@ -87,7 +87,20 @@ function run_test () {
     return $result
 }
 
-run_test $@
+# Parse command line arguments
+if [ "$#" -ge 2 ]; then
+    diff_unix="$1"
+    diff_wine="$2"
+elif [ "$#" -ge 1 ]; then
+    diff_unix="$1"
+    diff_wine="$1"
+else
+    diff_unix=""
+    diff_wine=""
+fi
+
+# Run Test
+run_test $diff_unix
 result=$?
 if [ "$result" -ne 0 ]; then exit $result; fi
 
@@ -99,7 +112,7 @@ if $test_wine; then
         }
         export -f terraform
 
-        run_test $@
+        run_test $diff_wine
     )
     result=$?
 fi

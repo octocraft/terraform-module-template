@@ -185,3 +185,22 @@ export -f terraform
     [ "$output" = "success" ]
 }
 
+@test "targets.diff / wine.diff" {
+
+    function wine () {
+        printf "terraform $1\n\nOutputs:\n\nfoo = lol\n"
+    }
+
+    export PATH="/bin"
+    export -f wine
+
+    run ./tftest.sh targets.diff wine.diff
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 0 ]
+    [ "${#lines[@]}" -eq 2 ]
+    [ "${lines[0]}" = "success" ]
+    [ "${lines[1]}" = "success" ]
+}
+
