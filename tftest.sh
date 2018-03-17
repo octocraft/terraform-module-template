@@ -2,7 +2,7 @@
 set -eu
 
 # Check if Terraform is present
-if ! command -v terraform &>/dev/null; then
+if ! tf_dir=$(command -v terraform); then
     echo 'error: terraform not found in $PATH'
     exit 2
 fi
@@ -92,9 +92,10 @@ result=$?
 if [ "$result" -ne 0 ]; then exit $result; fi
 
 if $test_wine; then
+    printf "\n"
     (
         function terraform () {
-            wine cmd /c "set PATH=%cd%\\vendor\\bin\\windows\\386;%PATH% && test.bat terraform $@"
+            wine cmd /c "set PATH=${tf_dir%current*}/windows/386;%PATH% && terraform $@"
         }
         export -f terraform
 
