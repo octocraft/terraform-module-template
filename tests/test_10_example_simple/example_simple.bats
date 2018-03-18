@@ -2,6 +2,8 @@
 
 @test "run" {
 
+    export TFTEST_WINE=false
+
     run ./sbpl test . tftest.sh
     echo "status: $status"
     echo "output: $output"
