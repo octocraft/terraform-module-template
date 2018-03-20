@@ -50,8 +50,13 @@ function run_test () {
     if [ "$result" -eq 0 ]; then
 
         set +e
-        numlines=$(echo "$output" | grep -c '^')
-        outputs=$(echo "$output" | grep -A $numlines "^Outputs:$" | grep -e '^[^ =]* = ')
+        outputs=$(
+            out=false
+            while IFS= read -r line; do
+                if $out && [ -n "$line" ]; then echo "$line"; fi;
+                if [ "$line" = "Outputs:" ]; then out=true; fi
+            done < <(printf '%s\n' "$output")
+        )
         set -e
 
         if [ ! -z "${1+x}" ] && [ -f "$1" ]; then
