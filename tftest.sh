@@ -22,6 +22,8 @@ function clean () {
 # Test function
 function exec_tf () {
 
+    verify="$1"
+
     set +e
     (
         set -e
@@ -29,6 +31,7 @@ function exec_tf () {
         terraform get > /dev/null
         set +e
         terraform apply -input=false -auto-approve -no-color
+        if [ -f "$verify" ]; then $verify; fi
         res=$?
         terraform destroy -force -no-color > /dev/null
         if [ "$res" -eq 0 ]; then return $?; else return $res; fi 
@@ -41,9 +44,12 @@ function exec_tf () {
 
 function run_test () {
 
+    [ -z ${1+x} ] && difffile="outputs.diff" || difffile="$1"
+    [ -z ${2+x} ] && verify="./verify.sh" || verify="$2"
+
     # run test
     set +e
-        output=$(exec_tf 2>&1)
+        output=$(exec_tf $verify 2>&1)
         result=$?
     set -e
 
@@ -59,17 +65,9 @@ function run_test () {
         )
         set -e
 
-        if [ ! -z "${1+x}" ] && [ -f "$1" ]; then
-            difffile="$1"
-        elif $diff_output && [ -f "outputs.diff" ]; then
-            difffile="outputs.diff"
-        else
-            difffile=""
-        fi
-
         output="$outputs"
 
-        if [ ! -z "$difffile" ]; then
+        if [ -f "$difffile" ]; then
 
             set +e
             [ "$outputs" = "$(< "$difffile")" ]
@@ -88,6 +86,12 @@ function run_test () {
 }
 
 # Parse command line arguments
+if [ "$#" -ge 3 ]; then
+    verify="$3"
+else
+    verify=""
+fi
+
 if [ "$#" -ge 2 ]; then
     diff_unix="$1"
     diff_wine="$2"
@@ -101,7 +105,7 @@ fi
 
 # Run Test
 clean
-run_test $diff_unix
+run_test $diff_unix $verify
 result=$?
 if [ "$result" -ne 0 ]; then exit $result; fi
 
@@ -113,7 +117,7 @@ if $test_wine; then
         }
         export -f terraform
 
-        run_test $diff_wine
+        run_test $diff_wine $verify
     )
     result=$?
 fi

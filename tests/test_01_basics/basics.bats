@@ -12,6 +12,9 @@ export -f terraform
 
 @test "TFTEST_WINE unset / no wine" {
 
+    rm -f verify.sh
+    rm -f outputs.diff
+
     export PATH="/bin"
 
     run ./tftest.sh
@@ -204,3 +207,49 @@ export -f terraform
     [ "${lines[1]}" = "foo = lol" ]
 }
 
+@test "verify.sh / fail" {
+
+    ln -fs check.sh verify.sh
+    rm -f test.dat
+
+    run ./tftest.sh
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 1 ]
+}
+
+@test "verify.sh / ok" {
+
+    printf "test" > test.dat
+
+    run ./tftest.sh
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 0 ]
+
+     rm -f verify.sh
+}
+
+@test "check.sh / ok" {
+
+    run ./tftest.sh null null ./check.sh
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 0 ]
+
+    rm -f test.dat
+}
+
+@test "check.sh / fail" {
+
+    run ./tftest.sh null null ./check.sh
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 1 ]
+
+    rm -f test.dat
+}

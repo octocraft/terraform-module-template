@@ -1,0 +1,1 @@
+../../../tests/sbpl-pkg.sh
