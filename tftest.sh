@@ -29,12 +29,9 @@ function exec_tf () {
         set -e
         terraform init -input=false -no-color > /dev/null
         terraform get > /dev/null
-        set +e
         terraform apply -input=false -auto-approve -no-color
-        if [ -f "$verify" ]; then $verify; fi
-        res=$?
+        $verify
         terraform destroy -force -no-color > /dev/null
-        if [ "$res" -eq 0 ]; then return $?; else return $res; fi 
     )
     result=$?
     set -e
@@ -44,12 +41,30 @@ function exec_tf () {
 
 function run_test () {
 
-    [ -z ${1+x} ] && difffile="outputs.diff" || difffile="$1"
-    [ -z ${2+x} ] && verify="./verify.sh" || verify="$2"
+    difffile="outputs.diff"; [ -f "$difffile" ] || difffile=""
+    verify="./verify.sh";    [ -f "$verify" ]   || verify=""
+
+    if [ ! -z "$1" ]; then
+        if [ ! -f "$1" ]; then
+            printf "file '%s' not found\n" "$1" 1>&2
+            return 2
+        fi
+
+        difffile="$1"
+    fi
+
+    if [ ! -z "$2" ]; then
+        if ! command -v "$2" &> /dev/null; then
+            printf "command '%s' not found\n" "$2" 1>&2
+            return 2
+        fi
+
+        verify="$2"
+    fi
 
     # run test
     set +e
-        output=$(exec_tf $verify 2>&1)
+        output=$(exec_tf "$verify" 2>&1)
         result=$?
     set -e
 
@@ -67,7 +82,7 @@ function run_test () {
 
         output="$outputs"
 
-        if [ -f "$difffile" ]; then
+        if [ ! -z "$difffile" ]; then
 
             set +e
             [ "$outputs" = "$(< "$difffile")" ]
@@ -105,7 +120,7 @@ fi
 
 # Run Test
 clean
-run_test $diff_unix $verify
+run_test "$diff_unix" "$verify"
 result=$?
 if [ "$result" -ne 0 ]; then exit $result; fi
 
@@ -117,7 +132,7 @@ if $test_wine; then
         }
         export -f terraform
 
-        run_test $diff_wine $verify
+        run_test "$diff_wine" "$verify"
     )
     result=$?
 fi

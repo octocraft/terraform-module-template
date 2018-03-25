@@ -27,6 +27,20 @@ If a file named `outputs.diff` is present in PWD, tftest will use this file to d
 
 - `TFTEST_DIFFOUTPUT` - set this to false to disable auto diffs with `outputs.diff` 
 
+### Examples
+
+#### [Basic](examples/basic)
+
+Shows basic usage of `tftest`. `outputs.diff` is used to compare the result of output.tf.
+
+#### [Verify](examples/verify)
+
+Shows basic usage of `tftest`. `verify.sh` is used to check the creation of ressources after `terraform apply`.
+
+#### [Simple](examples/simple)
+
+Simple example which shows how to run a number of test cases with `tftest` and `sbpl`.
+
 ## License
 
 MIT

@@ -207,6 +207,18 @@ export -f terraform
     [ "${lines[1]}" = "foo = lol" ]
 }
 
+@test "null.diff" {
+
+    export PATH="/bin"
+
+    run ./tftest.sh null.diff
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 2 ]
+    [ "$output" = "file 'null.diff' not found" ]
+}
+
 @test "verify.sh / fail" {
 
     ln -fs check.sh verify.sh
@@ -234,7 +246,7 @@ export -f terraform
 
 @test "check.sh / ok" {
 
-    run ./tftest.sh null null ./check.sh
+    run ./tftest.sh "" "" "./check.sh"
 
     echo "status: $status"
     echo "output: $output"
@@ -245,11 +257,22 @@ export -f terraform
 
 @test "check.sh / fail" {
 
-    run ./tftest.sh null null ./check.sh
+    rm -f test.dat
+    run ./tftest.sh "" "" "./check.sh"
 
     echo "status: $status"
     echo "output: $output"
     [ "$status" -eq 1 ]
+}
 
-    rm -f test.dat
+@test "null.sh" {
+
+    export PATH="/bin"
+
+    run ./tftest.sh "" "" "./null.sh"
+
+    echo "status: $status"
+    echo "output: $output"
+    [ "$status" -eq 2 ]
+    [ "$output" = "command './null.sh' not found" ]
 }
